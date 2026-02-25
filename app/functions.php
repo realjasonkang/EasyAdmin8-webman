@@ -37,7 +37,7 @@ if (!function_exists('parse_name')) {
     function parse_name(string $name, int $type = 0, bool $ucfirst = true): string
     {
         if ($type) {
-            $name = preg_replace_callback('/_([a-zA-Z])/', function($match) {
+            $name = preg_replace_callback('/_([a-zA-Z])/', function ($match) {
                 return strtoupper($match[1]);
             }, $name);
 
@@ -58,12 +58,12 @@ if (!function_exists('sysconfig')) {
      */
     function sysconfig($group, $name = null): mixed
     {
-        $where = ['group' => $group];
-        $value = empty($name) ? Cache::get("sysconfig_{$group}") : Cache::get("sysconfig_{$group}_{$name}");
+        $where[] = ['group', '=', $group];
+        $value   = empty($name) ? Cache::get("sysconfig_{$group}") : Cache::get("sysconfig_{$group}_{$name}");
         if (empty($value)) {
             if (!empty($name)) {
-                $where['name'] = $name;
-                $value         = \app\admin\model\SystemConfig::where($where)->value('value');
+                $where[] = ['name', '=', $name];
+                $value   = \app\admin\model\SystemConfig::where($where)->value('value');
                 Cache::set("sysconfig_{$group}_{$name}", $value, 3600);
             }else {
                 $res   = \app\admin\model\SystemConfig::where($where)->select('value', 'name')->get()->toArray();
@@ -125,38 +125,38 @@ if (!function_exists('updateFields')) {
         if (in_array('update_time', $fields)) $post['update_time'] = time();
         return extracted($post, $fields, $params, $row);
     }
+}
 
-    /**
-     * @param mixed $post
-     * @param array $fields
-     * @param array $params
-     * @param $row
-     * @return mixed
-     */
-    function extracted(mixed $post, array $fields, array $params, $row): mixed
-    {
-        $tableColumn = array_keys($post);
-        $fields      = array_intersect($tableColumn, $fields);
-        foreach ($fields as $value) {
-            if (isset($params[$value])) $post[$value] = $params[$value];
-            $row->$value = $post[$value] ?? '';
-        }
-        return $row->save();
+/**
+ * @param mixed $post
+ * @param array $fields
+ * @param array $params
+ * @param $row
+ * @return mixed
+ */
+function extracted(mixed $post, array $fields, array $params, $row): mixed
+{
+    $tableColumn = array_keys($post);
+    $fields      = array_intersect($tableColumn, $fields);
+    foreach ($fields as $value) {
+        if (isset($params[$value])) $post[$value] = $params[$value];
+        $row->$value = $post[$value] ?? '';
     }
+    return $row->save();
+}
 
-    /**
-     * @param string|null $detail
-     * @param string $name
-     * @param string $placeholder
-     * @return string
-     */
-    function editor_textarea(?string $detail, string $name = 'desc', string $placeholder = '请输入'): string
-    {
-        $editor_type = sysconfig('site', 'editor_type');
-        return match ($editor_type) {
-            'ckeditor' => "<textarea name='{$name}' rows='20' class='layui-textarea editor' placeholder='{$placeholder}'>{$detail}</textarea>",
-            'ueditor'  => "<script type='text/plain' id='{$name}' name='{$name}' class='editor' data-content='{$detail}'></script>",
-            default    => "<div class='wangEditor_div'><textarea name='{$name}' rows='20' class='layui-textarea editor layui-hide'>{$detail}</textarea><div id='editor_toolbar_{$name}'></div><div id='editor_{$name}' style='height: 300px'></div></div>",
-        };
-    }
+/**
+ * @param string|null $detail
+ * @param string $name
+ * @param string $placeholder
+ * @return string
+ */
+function editor_textarea(?string $detail, string $name = 'desc', string $placeholder = '请输入'): string
+{
+    $editor_type = sysconfig('site', 'editor_type');
+    return match ($editor_type) {
+        'ckeditor' => "<textarea name='{$name}' rows='20' class='layui-textarea editor' placeholder='{$placeholder}'>{$detail}</textarea>",
+        'ueditor'  => "<script type='text/plain' id='{$name}' name='{$name}' class='editor' data-content='{$detail}'></script>",
+        default    => "<div class='wangEditor_div'><textarea name='{$name}' rows='20' class='layui-textarea editor layui-hide'>{$detail}</textarea><div id='editor_toolbar_{$name}'></div><div id='editor_{$name}' style='height: 300px'></div></div>",
+    };
 }
